@@ -410,6 +410,86 @@ app.post("/launcher/start", express.json({ limit: "20kb" }), async (req, res) =>
   setTimeout(() => process.exit(0), 700);
 });
 
+app.get("/", (req, res, next) => {
+  if (runtimeMode !== "launcher") return next();
+  res.setHeader("content-type", "text/html; charset=utf-8");
+  res.end(`<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>llm-key-lb</title>
+    <style>
+      body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:#0b1020;color:#e5e7eb}
+      .container{max-width:720px;margin:40px auto;padding:0 16px}
+      .card{background:#111827;border:1px solid #1f2937;border-radius:10px;padding:16px}
+      .row{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+      label{display:flex;flex-direction:column;gap:6px;font-size:13px;min-width:200px;flex:1}
+      input{padding:10px 10px;border-radius:8px;border:1px solid #374151;background:#0b1020;color:#e5e7eb;outline:none}
+      input:focus{border-color:#60a5fa}
+      button{padding:10px 12px;border-radius:8px;border:1px solid #2563eb;background:#2563eb;color:white;cursor:pointer}
+      button:disabled{opacity:.6;cursor:not-allowed}
+      .muted{color:#9ca3af}
+      .hint{margin-top:10px;font-size:13px;color:#93c5fd}
+      .error{color:#fecaca}
+      h1{margin:0 0 6px 0;font-size:20px}
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <div class="card">
+        <h1>llm-key-lb 启动</h1>
+        <div class="muted">设置端口并启动服务（默认 ${PORT}）。</div>
+        <form id="f" class="row" style="margin-top:12px">
+          <label>
+            <span>端口</span>
+            <input id="port" inputmode="numeric" value="${PORT}" />
+          </label>
+          <div>
+            <button id="btn" type="submit">启动</button>
+          </div>
+        </form>
+        <div id="hint" class="hint"></div>
+      </div>
+    </main>
+    <script>
+      const hint=document.getElementById('hint');
+      const btn=document.getElementById('btn');
+      document.getElementById('f').addEventListener('submit',async(e)=>{
+        e.preventDefault();
+        hint.textContent='';
+        hint.classList.remove('error');
+        const raw=document.getElementById('port').value||'';
+        const n=Number(String(raw).trim());
+        const p=Math.trunc(n);
+        if(!Number.isFinite(n)||p<1||p>65535){
+          hint.textContent='端口无效，请输入 1-65535';
+          hint.classList.add('error');
+          return;
+        }
+        btn.disabled=true;
+        hint.textContent='正在启动…';
+        try{
+          const res=await fetch('/launcher/start',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({port:p})});
+          const data=await res.json().catch(()=>null);
+          if(!res.ok){
+            const msg=data&&data.error?data.error:('HTTP '+res.status);
+            throw new Error(msg);
+          }
+          const url=(data&&data.url)?data.url:('http://localhost:'+p+'/');
+          window.location.href=url;
+        }catch(err){
+          const msg=err.message==='port_in_use'?'端口已被占用，请换一个':err.message;
+          hint.textContent='启动失败：'+msg;
+          hint.classList.add('error');
+          btn.disabled=false;
+        }
+      });
+    </script>
+  </body>
+</html>`);
+});
+
 app.use((req, res, next) => {
   if (runtimeMode !== "launcher") return next();
   const p = req.path || "/";

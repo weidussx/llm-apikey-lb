@@ -28,7 +28,7 @@ jobs:
 
       - name: Build (macOS)
         if: runner.os == 'macOS'
-        run: npm run build:bin:mac
+        run: npm run build:app:mac
 
       - name: Build (Linux)
         if: runner.os == 'Linux'
