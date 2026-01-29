@@ -41,7 +41,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: dist-${{ runner.os }}
-          path: dist/*
+          path: |
+            dist/llm-apikey-lb-*
 
   github-release:
     needs: build
@@ -56,4 +57,4 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/**/*
+          files: artifacts/**/llm-apikey-lb-*

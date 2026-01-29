@@ -1,4 +1,5 @@
 const fs = require("fs/promises");
+const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
@@ -90,9 +91,7 @@ async function main() {
 
   const execPath = path.join(macosDir, "llm-apikey-lb");
 
-  const buildDir = path.join(distDir, ".build-macos-app");
-  await rmIfExists(buildDir);
-  await fs.mkdir(buildDir, { recursive: true });
+  const buildDir = await fs.mkdtemp(path.join(os.tmpdir(), "llm-apikey-lb-macos-app-"));
   const swiftPath = path.join(buildDir, "main.swift");
 
   const swift = `import Cocoa
@@ -314,7 +313,11 @@ app.run()
 `;
 
   await fs.writeFile(swiftPath, swift, "utf8");
-  run("xcrun", ["swiftc", "-O", swiftPath, "-o", execPath, "-framework", "Cocoa", "-framework", "WebKit"]);
+  try {
+    run("xcrun", ["swiftc", "-O", swiftPath, "-o", execPath, "-framework", "Cocoa", "-framework", "WebKit"]);
+  } finally {
+    await rmIfExists(buildDir);
+  }
   await fs.chmod(execPath, 0o755);
 
   if (process.platform === "darwin") {
