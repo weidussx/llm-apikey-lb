@@ -314,7 +314,35 @@ app.run()
 
   await fs.writeFile(swiftPath, swift, "utf8");
   try {
-    run("xcrun", ["swiftc", "-O", swiftPath, "-o", execPath, "-framework", "Cocoa", "-framework", "WebKit"]);
+    const armOut = path.join(buildDir, "llm-apikey-lb-arm64");
+    const x64Out = path.join(buildDir, "llm-apikey-lb-x86_64");
+    run("xcrun", [
+      "swiftc",
+      "-O",
+      swiftPath,
+      "-o",
+      armOut,
+      "-target",
+      "arm64-apple-macos11.0",
+      "-framework",
+      "Cocoa",
+      "-framework",
+      "WebKit"
+    ]);
+    run("xcrun", [
+      "swiftc",
+      "-O",
+      swiftPath,
+      "-o",
+      x64Out,
+      "-target",
+      "x86_64-apple-macos11.0",
+      "-framework",
+      "Cocoa",
+      "-framework",
+      "WebKit"
+    ]);
+    run("xcrun", ["lipo", "-create", "-output", execPath, armOut, x64Out]);
   } finally {
     await rmIfExists(buildDir);
   }
