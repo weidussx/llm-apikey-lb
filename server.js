@@ -13,6 +13,8 @@ const { Readable } = require("stream");
 const PORT = parseInt(process.env.PORT || "8787", 10);
 const ADMIN_TOKEN = (process.env.ADMIN_TOKEN || "").trim();
 const DATA_FILE = process.env.DATA_FILE || path.join(process.cwd(), "data", "state.json");
+const INSTANCE_ID = (process.env.LLM_KEY_LB_INSTANCE_ID || (crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString("hex")))
+  .trim();
 
 const METRICS_PATH = process.env.METRICS_PATH || "/metrics";
 
@@ -49,7 +51,7 @@ function isPortFree(port) {
     const server = net.createServer();
     server.once("error", () => resolve(false));
     server.once("listening", () => server.close(() => resolve(true)));
-    server.listen(port, "127.0.0.1");
+    server.listen(port);
   });
 }
 
@@ -391,7 +393,7 @@ let runtimeListenPort = null;
 let launcherReason = null;
 
 app.get("/health", (req, res) => {
-  res.json({ ok: true });
+  res.json({ ok: true, instanceId: INSTANCE_ID, mode: runtimeMode, port: runtimeListenPort });
 });
 
 app.get(METRICS_PATH, async (req, res) => {

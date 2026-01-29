@@ -189,6 +189,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
   private var child: Process?
   private var pollingTimer: Timer?
   private var currentURL: URL?
+  private var expectedInstanceId: String?
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     NSApp.setActivationPolicy(.regular)
@@ -306,10 +307,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     let appSupportDir = appSupportBase.appendingPathComponent("llm-apikey-lb", isDirectory: true)
     try? fm.createDirectory(at: appSupportDir, withIntermediateDirectories: true)
     var env = ProcessInfo.processInfo.environment
+    let instanceId = UUID().uuidString
     env["PORT"] = String(port)
     env["LAUNCHER_MODE"] = "0"
     env["AUTO_OPEN_BROWSER"] = "0"
     env["DATA_FILE"] = appSupportDir.appendingPathComponent("state.json").path
+    env["LLM_KEY_LB_INSTANCE_ID"] = instanceId
     proc.currentDirectoryURL = appSupportDir
     proc.environment = env
     proc.standardOutput = FileHandle.nullDevice
@@ -325,6 +328,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
 
     let url = URL(string: "http://localhost:\\(port)/")!
     currentURL = url
+    expectedInstanceId = instanceId
     openBrowserButton.isEnabled = true
     statusLabel.stringValue = "正在启动…"
     startPollingHealth(url)
@@ -334,6 +338,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     pollingTimer?.invalidate()
     pollingTimer = nil
     currentURL = nil
+    expectedInstanceId = nil
     openBrowserButton.isEnabled = false
     if let p = child {
       if p.isRunning { p.terminate() }
@@ -344,13 +349,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
   private func startPollingHealth(_ base: URL) {
     pollingTimer?.invalidate()
     let health = base.appendingPathComponent("health")
+    let startedAt = Date()
     pollingTimer = Timer.scheduledTimer(withTimeInterval: 0.35, repeats: true) { [weak self] t in
       guard let self else { return }
+      if Date().timeIntervalSince(startedAt) > 6.0 {
+        DispatchQueue.main.async {
+          t.invalidate()
+          self.statusLabel.stringValue = "启动超时：端口可能被占用（尤其是 IPv6/旧实例）"
+        }
+        return
+      }
       var req = URLRequest(url: health)
       req.cachePolicy = .reloadIgnoringLocalCacheData
       URLSession.shared.dataTask(with: req) { data, resp, err in
         if err != nil { return }
-        if let http = resp as? HTTPURLResponse, http.statusCode == 200 {
+        guard let http = resp as? HTTPURLResponse, http.statusCode == 200, let data else { return }
+        if let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let got = obj["instanceId"] as? String,
+           let expected = self.expectedInstanceId,
+           got == expected {
           DispatchQueue.main.async {
             t.invalidate()
             self.statusLabel.stringValue = "已启动：\\(base.absoluteString)"
