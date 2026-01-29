@@ -97,6 +97,10 @@ async function main() {
   await rmIfExists(appPath);
   await fs.mkdir(macosDir, { recursive: true });
   await fs.mkdir(resourcesDir, { recursive: true });
+  if (await pathExists(path.join(root, "public"))) {
+    await rmIfExists(path.join(resourcesDir, "public"));
+    await fs.cp(path.join(root, "public"), path.join(resourcesDir, "public"), { recursive: true });
+  }
 
   const infoPlist = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
