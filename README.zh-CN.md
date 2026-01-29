@@ -124,47 +124,7 @@ npm run build:bin:win
 ```
 
 生成物在 `dist/`。可执行文件会直接提供内置的管理界面静态资源；状态文件默认写到当前工作目录的 `./data/state.json`（可用 `DATA_FILE` 改）。
-文件命名：
-
-- macOS：`llm-apikey-lb-macos-x64` / `llm-apikey-lb-macos-arm64`
-- Linux：`llm-apikey-lb-linux-x64`
-- Windows：`llm-apikey-lb-windows-x64.exe`
-
-### macOS Gatekeeper / “Apple 无法验证”
-
-从 GitHub Releases 下载的未签名可执行文件，macOS 通常会弹出“Apple 无法验证…”的提示（Gatekeeper 机制）。
-
-可选解决方式：
-
-- Finder：右键可执行文件 → 打开 → 仍要打开
-- 或：系统设置 → 隐私与安全性 → 仍要打开
-- 或（命令行）：移除隔离属性（quarantine）：
-
-```bash
-xattr -dr com.apple.quarantine ./llm-apikey-lb-macos-arm64
-```
-
-如果希望“任何用户下载后都不弹窗”，需要使用 Apple Developer ID 证书对二进制签名并完成 notarization（需要在 CI 配置证书与凭据）。
-
-### GitHub Releases（推荐）
-
-打 tag（例如 `v0.1.0`）并 push 后，GitHub Actions 会自动构建 macOS/Windows/Linux 三个平台的可执行文件并附加到 release。
-
-## 推送到 GitHub
-
-仓库地址：
-
-```
-git@github.com:weidussx/llm-apikey-lb.git
-```
-
-常见首次 push 命令：
-
-```bash
-git remote add origin git@github.com:weidussx/llm-apikey-lb.git
-git branch -M main
-git push -u origin main
-```
+macOS 提示：如果运行时系统拦截，可到“系统设置 → 隐私与安全性 → 仍要打开”。
 
 ## 安全建议
 
