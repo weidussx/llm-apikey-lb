@@ -21,9 +21,9 @@
   },
   "scripts": {
     "start": "node server.js",
-    "build:bin:mac": "cross-env PKG_CACHE_PATH=.pkg-cache pkg -t node18-macos-x64,node18-macos-arm64 -o dist/llm-apikey-lb server.js",
-    "build:bin:linux": "cross-env PKG_CACHE_PATH=.pkg-cache pkg -t node18-linux-x64 -o dist/llm-apikey-lb server.js",
-    "build:bin:win": "cross-env PKG_CACHE_PATH=.pkg-cache pkg -t node18-win-x64 -o dist/llm-apikey-lb.exe server.js"
+    "build:bin:mac": "cross-env PKG_CACHE_PATH=.pkg-cache pkg -t node18-macos-x64,node18-macos-arm64 -o dist/llm-apikey-lb-macos server.js",
+    "build:bin:linux": "cross-env PKG_CACHE_PATH=.pkg-cache pkg -t node18-linux-x64 -o dist/llm-apikey-lb-linux-x64 server.js",
+    "build:bin:win": "cross-env PKG_CACHE_PATH=.pkg-cache pkg -t node18-win-x64 -o dist/llm-apikey-lb-windows-x64.exe server.js"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

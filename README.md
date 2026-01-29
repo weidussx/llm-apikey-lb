@@ -124,6 +124,11 @@ npm run build:bin:win
 ```
 
 Outputs go to `dist/`. The binary serves the embedded UI assets and uses your current working directory for `DATA_FILE` (default `./data/state.json`).
+Binary names:
+
+- macOS: `llm-apikey-lb-macos-x64` / `llm-apikey-lb-macos-arm64`
+- Linux: `llm-apikey-lb-linux-x64`
+- Windows: `llm-apikey-lb-windows-x64.exe`
 
 ### GitHub Releases (recommended)
 

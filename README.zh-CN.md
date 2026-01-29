@@ -124,6 +124,11 @@ npm run build:bin:win
 ```
 
 生成物在 `dist/`。可执行文件会直接提供内置的管理界面静态资源；状态文件默认写到当前工作目录的 `./data/state.json`（可用 `DATA_FILE` 改）。
+文件命名：
+
+- macOS：`llm-apikey-lb-macos-x64` / `llm-apikey-lb-macos-arm64`
+- Linux：`llm-apikey-lb-linux-x64`
+- Windows：`llm-apikey-lb-windows-x64.exe`
 
 ### GitHub Releases（推荐）
 
