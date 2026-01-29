@@ -130,6 +130,22 @@ Binary names:
 - Linux: `llm-apikey-lb-linux-x64`
 - Windows: `llm-apikey-lb-windows-x64.exe`
 
+### macOS Gatekeeper / “Apple cannot verify”
+
+macOS will show a warning for unsigned binaries downloaded from the internet (including GitHub Releases).
+
+To run it anyway:
+
+- Finder: right-click the binary → Open → Open
+- Or: System Settings → Privacy & Security → “Open Anyway”
+- Or (CLI): remove the quarantine attribute:
+
+```bash
+xattr -dr com.apple.quarantine ./llm-apikey-lb-macos-arm64
+```
+
+If you want the binary to open without warnings for everyone, you need an Apple Developer ID certificate and notarization (CI secrets required).
+
 ### GitHub Releases (recommended)
 
 Tag a version (e.g. `v0.1.0`) and push it. GitHub Actions will build binaries for macOS/Windows/Linux and attach them to the release.

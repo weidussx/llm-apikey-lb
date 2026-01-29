@@ -130,6 +130,22 @@ npm run build:bin:win
 - Linux：`llm-apikey-lb-linux-x64`
 - Windows：`llm-apikey-lb-windows-x64.exe`
 
+### macOS Gatekeeper / “Apple 无法验证”
+
+从 GitHub Releases 下载的未签名可执行文件，macOS 通常会弹出“Apple 无法验证…”的提示（Gatekeeper 机制）。
+
+可选解决方式：
+
+- Finder：右键可执行文件 → 打开 → 仍要打开
+- 或：系统设置 → 隐私与安全性 → 仍要打开
+- 或（命令行）：移除隔离属性（quarantine）：
+
+```bash
+xattr -dr com.apple.quarantine ./llm-apikey-lb-macos-arm64
+```
+
+如果希望“任何用户下载后都不弹窗”，需要使用 Apple Developer ID 证书对二进制签名并完成 notarization（需要在 CI 配置证书与凭据）。
+
 ### GitHub Releases（推荐）
 
 打 tag（例如 `v0.1.0`）并 push 后，GitHub Actions 会自动构建 macOS/Windows/Linux 三个平台的可执行文件并附加到 release。
