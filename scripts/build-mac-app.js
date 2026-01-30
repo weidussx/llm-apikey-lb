@@ -206,9 +206,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     NSApp.setActivationPolicy(.accessory)
+    setupMainMenu()
     setupStatusItem()
     buildUI()
     showMainWindow()
+  }
+
+  private func setupMainMenu() {
+    let mainMenu = NSMenu()
+
+    let appMenuItem = NSMenuItem()
+    mainMenu.addItem(appMenuItem)
+    let appMenu = NSMenu()
+    appMenu.addItem(NSMenuItem(title: "About llm-api-lb", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: ""))
+    appMenu.addItem(NSMenuItem.separator())
+    let quitItem = NSMenuItem(title: "Quit llm-api-lb", action: #selector(onMenuQuit), keyEquivalent: "q")
+    quitItem.target = self
+    appMenu.addItem(quitItem)
+    appMenuItem.submenu = appMenu
+
+    let editItem = NSMenuItem()
+    mainMenu.addItem(editItem)
+    let editMenu = NSMenu(title: "Edit")
+    editMenu.addItem(NSMenuItem(title: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x"))
+    editMenu.addItem(NSMenuItem(title: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c"))
+    editMenu.addItem(NSMenuItem(title: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v"))
+    editMenu.addItem(NSMenuItem(title: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a"))
+    editItem.submenu = editMenu
+
+    let windowItem = NSMenuItem()
+    mainMenu.addItem(windowItem)
+    let windowMenu = NSMenu(title: "Window")
+    windowMenu.addItem(NSMenuItem(title: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m"))
+    windowMenu.addItem(NSMenuItem(title: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w"))
+    windowItem.submenu = windowMenu
+
+    NSApp.mainMenu = mainMenu
   }
 
   func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -276,6 +309,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
   }
 
   @objc private func onMenuQuit() {
+    let alert = NSAlert()
+    alert.messageText = "退出 llm-api-lb？"
+    alert.informativeText = "服务将停止运行，API 接口将不可用。"
+    alert.addButton(withTitle: "退出")
+    alert.addButton(withTitle: "取消")
+    alert.alertStyle = .warning
+    
+    // 如果主窗口可见，作为 sheet 弹出；否则作为模态窗口弹出
+    if let w = window, w.isVisible {
+      alert.beginSheetModal(for: w) { resp in
+        if resp == .alertFirstButtonReturn {
+          self.doQuit()
+        }
+      }
+    } else {
+      let resp = alert.runModal()
+      if resp == .alertFirstButtonReturn {
+        doQuit()
+      }
+    }
+  }
+
+  private func doQuit() {
     stopChild()
     NSApp.terminate(nil)
   }
@@ -319,7 +375,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     openBrowserButton.bezelStyle = .rounded
     openBrowserButton.isEnabled = false
 
-    statusLabel = NSTextField(labelWithString: "")
+    statusLabel = NSTextField(labelWithString: "应用已在任务栏运行")
     statusLabel.textColor = .secondaryLabelColor
     statusLabel.lineBreakMode = .byTruncatingMiddle
 
