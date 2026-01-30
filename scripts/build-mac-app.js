@@ -101,6 +101,9 @@ async function main() {
     await rmIfExists(path.join(resourcesDir, "public"));
     await fs.cp(path.join(root, "public"), path.join(resourcesDir, "public"), { recursive: true });
   }
+  if (await pathExists(path.join(root, "assets", "task.png"))) {
+    await fs.copyFile(path.join(root, "assets", "task.png"), path.join(resourcesDir, "task.png"));
+  }
 
   const infoPlist = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -219,8 +222,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
   private func setupStatusItem() {
     statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     if let button = statusItem.button {
-      button.image = NSApp.applicationIconImage
-      button.image?.size = NSSize(width: 18, height: 18)
+      if let url = Bundle.main.url(forResource: "task", withExtension: "png"), let img = NSImage(contentsOf: url) {
+        img.isTemplate = true
+        img.size = NSSize(width: 18, height: 18)
+        button.image = img
+      } else {
+        if let img = NSApp.applicationIconImage {
+          img.isTemplate = true
+          img.size = NSSize(width: 18, height: 18)
+          button.image = img
+        }
+      }
     }
 
     let menu = NSMenu()
