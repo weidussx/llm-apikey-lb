@@ -13,7 +13,7 @@
 - OpenAI 兼容反向代理：自动注入上游 `Authorization: Bearer <apiKey>`
 - 负载均衡与故障切换：可用 Key round-robin；遇到 `429`/`5xx`/`401/403` 冷却并重试
 - 监控面板：按 Key 统计请求/成功/失败/冷却/平均耗时 + 勾选出图
-- Prometheus 指标：暴露 `/metrics`（`llm_key_lb_*`）
+- Prometheus 指标：暴露 `/metrics`（`llm_api_lb_*`）
 - 界面语言切换：中英文
 
 ## 应用场景
@@ -91,7 +91,7 @@ curl -sS http://localhost:8787/metrics | less
 只看本项目指标：
 
 ```bash
-curl -sS http://localhost:8787/metrics | grep '^llm_key_lb_'
+curl -sS http://localhost:8787/metrics | grep '^llm_api_lb_'
 ```
 
 最简 `prometheus.yml` 示例：

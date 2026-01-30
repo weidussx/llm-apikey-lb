@@ -1,8 +1,8 @@
-# llm-apikey-lb
+# llm-api-lb
 
 [中文说明](README.zh-CN.md)
 
-`llm-apikey-lb` is a local HTTP gateway that manages a pool of API keys and exposes a single OpenAI-compatible `/v1` endpoint. It round-robins keys and automatically cools down / fails over on rate limits and upstream errors.
+`llm-api-lb` is a local HTTP gateway that manages a pool of API keys and exposes a single OpenAI-compatible `/v1` endpoint. It round-robins keys and automatically cools down / fails over on rate limits and upstream errors.
 
 ![UI Screenshot](assets/ui.png)
 
@@ -13,7 +13,7 @@
 - OpenAI-compatible reverse proxy: injects upstream `Authorization: Bearer <apiKey>`
 - Load balancing & failover: round-robin across eligible keys; cooldown on `429`, `5xx`, `401/403`
 - Monitoring dashboard: per-key totals / success / failure / cooldown / avg latency + selectable charts
-- Prometheus metrics: exposes `/metrics` with `llm_key_lb_*` series
+- Prometheus metrics: exposes `/metrics` with `llm_api_lb_*` series
 - UI language switch: Chinese / English
 
 ## Use cases
@@ -91,14 +91,14 @@ curl -sS http://localhost:8787/metrics | less
 Filter project metrics:
 
 ```bash
-curl -sS http://localhost:8787/metrics | grep '^llm_key_lb_'
+curl -sS http://localhost:8787/metrics | grep '^llm_api_lb_'
 ```
 
 Minimal `prometheus.yml` example:
 
 ```yaml
 scrape_configs:
-  - job_name: "llm-apikey-lb"
+  - job_name: "llm-api-lb"
     static_configs:
       - targets: ["localhost:8787"]
 ```
@@ -128,11 +128,11 @@ npm run build:bin:win
 Outputs go to `dist/`. The binary serves the embedded UI assets and uses your current working directory for `DATA_FILE` (default `./data/state.json`).
 Binary names:
 
-- macOS: `llm-apikey-lb-macos.app.zip`
-- Linux: `llm-apikey-lb-linux-x64`
-- Windows: `llm-apikey-lb-windows-x64.exe`
+- macOS: `llm-api-lb-macos.app.zip`
+- Linux: `llm-api-lb-linux-x64`
+- Windows: `llm-api-lb-windows-x64.exe`
 
-On macOS, the `.app` stores its state at `~/Library/Application Support/llm-apikey-lb/state.json` by default.
+On macOS, the `.app` stores its state at `~/Library/Application Support/llm-api-lb/state.json` by default.
 
 ### macOS Gatekeeper / “Apple cannot verify”
 
@@ -145,7 +145,7 @@ To run it anyway:
 - Or (CLI): remove the quarantine attribute:
 
 ```bash
-xattr -dr com.apple.quarantine ./llm-apikey-lb-macos-arm64
+xattr -dr com.apple.quarantine ./llm-api-lb-macos-arm64
 ```
 
 If you want the binary to open without warnings for everyone, you need an Apple Developer ID certificate and notarization (CI secrets required).
@@ -159,13 +159,13 @@ Tag a version (e.g. `v0.1.0`) and push it. GitHub Actions will build binaries fo
 Repository:
 
 ```
-git@github.com:weidussx/llm-apikey-lb.git
+git@github.com:weidussx/llm-api-lb.git
 ```
 
 Common first-push commands:
 
 ```bash
-git remote add origin git@github.com:weidussx/llm-apikey-lb.git
+git remote add origin git@github.com:weidussx/llm-api-lb.git
 git branch -M main
 git push -u origin main
 ```

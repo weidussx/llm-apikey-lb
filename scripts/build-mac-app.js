@@ -112,15 +112,15 @@ async function main() {
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleDisplayName</key>
-    <string>llm-apikey-lb</string>
+    <string>llm-api-lb</string>
     <key>CFBundleExecutable</key>
-    <string>llm-apikey-lb</string>
+    <string>llm-api-lb</string>
     <key>CFBundleIdentifier</key>
-    <string>com.weidussx.llm-apikey-lb</string>
+    <string>com.weidussx.llm-api-lb</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>llm-apikey-lb</string>
+    <string>llm-api-lb</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -141,14 +141,14 @@ async function main() {
 `;
   await fs.writeFile(path.join(contents, "Info.plist"), infoPlist, "utf8");
 
-  await fs.copyFile(binArm64, path.join(resourcesDir, "llm-apikey-lb-macos-arm64"));
-  await fs.copyFile(binX64, path.join(resourcesDir, "llm-apikey-lb-macos-x64"));
-  await fs.chmod(path.join(resourcesDir, "llm-apikey-lb-macos-arm64"), 0o755);
-  await fs.chmod(path.join(resourcesDir, "llm-apikey-lb-macos-x64"), 0o755);
+  await fs.copyFile(binArm64, path.join(resourcesDir, "llm-api-lb-macos-arm64"));
+  await fs.copyFile(binX64, path.join(resourcesDir, "llm-api-lb-macos-x64"));
+  await fs.chmod(path.join(resourcesDir, "llm-api-lb-macos-arm64"), 0o755);
+  await fs.chmod(path.join(resourcesDir, "llm-api-lb-macos-x64"), 0o755);
 
-  const execPath = path.join(macosDir, "llm-apikey-lb");
+  const execPath = path.join(macosDir, "llm-api-lb");
 
-  const buildDir = await fs.mkdtemp(path.join(os.tmpdir(), "llm-apikey-lb-macos-app-"));
+  const buildDir = await fs.mkdtemp(path.join(os.tmpdir(), "llm-api-lb-macos-app-"));
   const swiftPath = path.join(buildDir, "main.swift");
 
   const swift = `import Cocoa
@@ -390,7 +390,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     }
 
     let arch = machineArch()
-    let binName = (arch == "x86_64") ? "llm-apikey-lb-macos-x64" : "llm-apikey-lb-macos-arm64"
+    let binName = (arch == "x86_64") ? "llm-api-lb-macos-x64" : "llm-api-lb-macos-arm64"
     let binURL = res.appendingPathComponent(binName)
 
     let proc = Process()
@@ -514,8 +514,8 @@ app.run()
     }
     run("iconutil", ["-c", "icns", iconsetDir, "-o", path.join(resourcesDir, "AppIcon.icns")]);
 
-    const armOut = path.join(buildDir, "llm-apikey-lb-arm64");
-    const x64Out = path.join(buildDir, "llm-apikey-lb-x86_64");
+    const armOut = path.join(buildDir, "llm-api-lb-arm64");
+    const x64Out = path.join(buildDir, "llm-api-lb-x86_64");
     run("xcrun", [
       "swiftc",
       "-O",
