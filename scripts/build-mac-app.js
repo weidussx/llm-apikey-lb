@@ -193,6 +193,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
   private var startButton: NSButton!
   private var stopButton: NSButton!
   private var openBrowserButton: NSButton!
+  private var copyUrlButton: NSButton!
   private var statusLabel: NSTextField!
   private var statusItem: NSStatusItem!
   private var menuOpenMain: NSMenuItem!
@@ -395,6 +396,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     openBrowserButton.bezelStyle = .rounded
     openBrowserButton.isEnabled = false
 
+    copyUrlButton = NSButton(title: "复制 Base URL", target: self, action: #selector(onCopyUrl))
+    copyUrlButton.bezelStyle = .rounded
+    copyUrlButton.isEnabled = false
+
     statusLabel = NSTextField(labelWithString: "应用已在任务栏运行")
     statusLabel.textColor = .secondaryLabelColor
     statusLabel.lineBreakMode = .byTruncatingMiddle
@@ -404,6 +409,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     topBar.addArrangedSubview(startButton)
     topBar.addArrangedSubview(stopButton)
     topBar.addArrangedSubview(openBrowserButton)
+    topBar.addArrangedSubview(copyUrlButton)
     topBar.addArrangedSubview(statusLabel)
 
     let config = WKWebViewConfiguration()
@@ -437,6 +443,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
   @objc private func onOpenBrowser() {
     guard let url = currentURL else { return }
     NSWorkspace.shared.open(url)
+  }
+
+  @objc private func onCopyUrl() {
+    guard let url = currentURL else { return }
+    let v1 = url.appendingPathComponent("v1").absoluteString
+    let pasteboard = NSPasteboard.general
+    pasteboard.clearContents()
+    pasteboard.setString(v1, forType: .string)
+    
+    copyUrlButton.title = "已复制！"
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+      self?.copyUrlButton.title = "复制 Base URL"
+    }
   }
 
   @objc private func onStop() {
@@ -499,6 +518,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     currentURL = url
     expectedInstanceId = instanceId
     openBrowserButton.isEnabled = true
+    copyUrlButton.isEnabled = true
     stopButton.isEnabled = true
     menuOpenBrowser.isEnabled = true
     menuStop.isEnabled = true
@@ -513,6 +533,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     currentURL = nil
     expectedInstanceId = nil
     openBrowserButton.isEnabled = false
+    copyUrlButton.isEnabled = false
     stopButton.isEnabled = false
     if menuOpenBrowser != nil { menuOpenBrowser.isEnabled = false }
     if menuStop != nil { menuStop.isEnabled = false }
