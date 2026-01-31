@@ -81,7 +81,9 @@ const I18N = {
     "modal.field.models": "Models(逗号分隔,留空=全模型)",
     "modal.field.apiKey": "API Key",
     "modal.field.adminToken": "ADMIN_TOKEN",
+    "modal.field.weight": "轮询权重",
     "modal.ph.apiKeyKeep": "留空=不改",
+    "modal.ph.weight": "默认 1",
     "modal.token.desc": "ADMIN_TOKEN 用于保护 /admin/* 管理接口。\n当服务端设置了环境变量 ADMIN_TOKEN 后，所有管理接口必须携带请求头：x-admin-token: <ADMIN_TOKEN> 才能访问。",
     "modal.token.note": "这里设置的令牌只保存在本机（浏览器/应用的 localStorage），不会上传，也不会写入状态文件。\n留空并保存 = 清除本机保存的令牌。",
     "modal.token.example": "示例（命令行调用管理接口）：\ncurl -H \"x-admin-token: <ADMIN_TOKEN>\" http://localhost:8787/admin/keys",
@@ -127,12 +129,14 @@ const I18N = {
     "form.model": "Model（留空表示全模型）",
     "form.modelCustom": "自定义 Model",
     "form.apiKey": "API Key",
+    "form.weight": "轮询权重",
     "form.enabled": "启用",
 
     "ph.name": "可选，便于区分",
     "ph.baseUrl": "例如 https://api.openai.com/v1",
     "ph.modelCustom": "例如 gpt-4o-mini",
     "ph.apiKey": "必填",
+    "ph.weight": "默认 1",
 
     "provider.openai": "OpenAI",
     "provider.gemini": "Gemini (OpenAI 兼容)",
@@ -153,6 +157,7 @@ const I18N = {
     "table.provider": "厂商",
     "table.baseUrl": "Base URL",
     "table.models": "Model",
+    "table.weight": "权重",
     "table.key": "Key",
     "table.status": "状态",
     "table.actions": "操作",
@@ -205,7 +210,9 @@ const I18N = {
     "modal.field.models": "Models (comma-separated, empty = all)",
     "modal.field.apiKey": "API Key",
     "modal.field.adminToken": "ADMIN_TOKEN",
+    "modal.field.weight": "Weight",
     "modal.ph.apiKeyKeep": "Empty = keep unchanged",
+    "modal.ph.weight": "Default 1",
     "modal.token.desc": "ADMIN_TOKEN protects /admin/* management endpoints.\nIf the server sets env ADMIN_TOKEN, admin APIs require header: x-admin-token: <ADMIN_TOKEN>.",
     "modal.token.note": "This token is stored locally (browser/app localStorage) only. It is not uploaded and not written to the state file.\nSave empty = clear the local token.",
     "modal.token.example": "Example (call admin API from CLI):\ncurl -H \"x-admin-token: <ADMIN_TOKEN>\" http://localhost:8787/admin/keys",
@@ -251,12 +258,14 @@ const I18N = {
     "form.model": "Model (empty = all models)",
     "form.modelCustom": "Custom model",
     "form.apiKey": "API Key",
+    "form.weight": "Weight",
     "form.enabled": "Enabled",
 
     "ph.name": "Optional, for distinguishing keys",
     "ph.baseUrl": "e.g. https://api.openai.com/v1",
     "ph.modelCustom": "e.g. gpt-4o-mini",
     "ph.apiKey": "Required",
+    "ph.weight": "Default 1",
 
     "provider.openai": "OpenAI",
     "provider.gemini": "Gemini (OpenAI-compatible)",
@@ -277,6 +286,7 @@ const I18N = {
     "table.provider": "Provider",
     "table.baseUrl": "Base URL",
     "table.models": "Model",
+    "table.weight": "Weight",
     "table.key": "Key",
     "table.status": "Status",
     "table.actions": "Actions",
@@ -454,6 +464,9 @@ function openEditKeyModal({ key, hint, onDone }) {
   const inputModels = el("input");
   inputModels.value = key && Array.isArray(key.models) ? key.models.join(",") : "";
 
+  const inputWeight = el("input", { inputmode: "numeric", "data-i18n-placeholder": "modal.ph.weight" });
+  inputWeight.value = key && key.weight ? String(key.weight) : "1";
+
   const inputApiKey = el("input", { type: "password", "data-i18n-placeholder": "modal.ph.apiKeyKeep" });
 
   openModal({
@@ -462,6 +475,7 @@ function openEditKeyModal({ key, hint, onDone }) {
       el("label", {}, [el("span", { "data-i18n": "modal.field.name" }), inputName]),
       el("label", {}, [el("span", { "data-i18n": "modal.field.baseUrl" }), inputBaseUrl]),
       el("label", {}, [el("span", { "data-i18n": "modal.field.models" }), inputModels]),
+      el("label", {}, [el("span", { "data-i18n": "modal.field.weight" }), inputWeight]),
       el("label", {}, [el("span", { "data-i18n": "modal.field.apiKey" }), inputApiKey])
     ],
     onOk: async () => {
@@ -478,6 +492,7 @@ function openEditKeyModal({ key, hint, onDone }) {
             name: inputName.value,
             baseUrl: inputBaseUrl.value,
             models: splitModels(inputModels.value),
+            weight: inputWeight.value,
             apiKey: inputApiKey.value
           })
         });
@@ -911,6 +926,7 @@ function renderKeys(keys, presets) {
         el("th", {}, [t("table.provider")]),
         el("th", {}, [t("table.baseUrl")]),
         el("th", {}, [t("table.models")]),
+        el("th", {}, [t("table.weight")]),
         el("th", {}, [t("table.key")]),
         el("th", {}, [t("table.status")]),
         el("th", {}, [t("table.actions")])
@@ -1017,6 +1033,7 @@ function renderKeys(keys, presets) {
           el("span", { class: "truncate", title: k.baseUrl || "" }, [k.baseUrl || ""])
         ]),
         el("td", {}, [(k.models || []).join(",") || t("models.all")]),
+        el("td", {}, [String(k.weight || 1)]),
         el("td", {}, [k.apiKeyMasked || ""]),
         el("td", {}, [statusText]),
         el("td", { class: "rowActions" }, [btnEdit, btnToggle, btnDelete])
@@ -1216,6 +1233,7 @@ async function main() {
     const modelSelect = document.getElementById("modelSelect").value;
     const modelCustom = document.getElementById("modelCustom").value;
     const apiKey = document.getElementById("apiKey").value;
+    const weight = document.getElementById("weight").value;
     const enabled = document.getElementById("enabled").checked;
 
     const selectedModel =
@@ -1231,10 +1249,12 @@ async function main() {
           baseUrl,
           models: selectedModel ? [selectedModel] : [],
           apiKey,
+          weight,
           enabled
         })
       });
       document.getElementById("apiKey").value = "";
+      document.getElementById("weight").value = "1";
       document.getElementById("modelSelect").value = "";
       setModelCustomVisible(false);
       document.getElementById("addHint").textContent = t("msg.addOk");

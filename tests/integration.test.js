@@ -83,11 +83,11 @@ async function startLb({ port, dataFile }) {
   };
 }
 
-async function adminCreateKey(lbUrl, { provider, apiKey, baseUrl, name }) {
+async function adminCreateKey(lbUrl, { provider, apiKey, baseUrl, name, weight }) {
   const res = await fetch(`${lbUrl}/admin/keys`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ provider, apiKey, baseUrl, name, enabled: true, models: [] })
+    body: JSON.stringify({ provider, apiKey, baseUrl, name, weight, enabled: true, models: [] })
   });
   const text = await res.text();
   assert.equal(res.status, 200, text);
@@ -225,6 +225,46 @@ test("retries within one request and does not 503 when all keys cooling down", a
     });
     assert.equal(r2.status, 200, await r2.text());
     assert.ok(hits.length >= 1);
+  } finally {
+    await lb.kill();
+    await upstream.close();
+    await fs.rm(dataFile, { force: true });
+  }
+});
+
+test("weighted round-robin prefers higher weight keys", async () => {
+  const hits = [];
+  const upstream = await startMockUpstream(async (req, res) => {
+    const auth = req.headers.authorization || "";
+    hits.push(auth);
+    res.statusCode = 200;
+    res.setHeader("content-type", "application/json");
+    res.end(JSON.stringify({ ok: true }));
+  });
+
+  const dataFile = path.join(os.tmpdir(), `llm-key-lb-test-${Date.now()}-${Math.random().toString(16).slice(2)}.json`);
+  await fs.mkdir(path.dirname(dataFile), { recursive: true });
+  await fs.writeFile(dataFile, JSON.stringify({ version: 1, rrIndex: 0, rrIndexByPool: {}, keys: [] }, null, 2));
+
+  const port = await getFreePort();
+  const lb = await startLb({ port, dataFile });
+
+  try {
+    await adminCreateKey(lb.url, { provider: "custom", apiKey: "K1", baseUrl: `http://127.0.0.1:${upstream.port}/v1`, name: "k1", weight: 3 });
+    await adminCreateKey(lb.url, { provider: "custom", apiKey: "K2", baseUrl: `http://127.0.0.1:${upstream.port}/v1`, name: "k2", weight: 1 });
+
+    for (let i = 0; i < 8; i += 1) {
+      const r = await fetch(`${lb.url}/chat/completions`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-llm-provider": "custom" },
+        body: JSON.stringify({ model: "any", messages: [{ role: "user", content: "hi" }] })
+      });
+      assert.equal(r.status, 200, await r.text());
+    }
+
+    const c1 = hits.filter((h) => h === "Bearer K1").length;
+    const c2 = hits.filter((h) => h === "Bearer K2").length;
+    assert.ok(c1 > c2, `expected K1(${c1}) > K2(${c2}); hits=${hits.join(",")}`);
   } finally {
     await lb.kill();
     await upstream.close();

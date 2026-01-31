@@ -284,6 +284,11 @@ async function readState() {
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") throw new Error("invalid_state");
     if (!Array.isArray(parsed.keys)) parsed.keys = [];
+    parsed.keys.forEach((k) => {
+      if (!k || typeof k !== "object") return;
+      if (k.weight === undefined || k.weight === null) k.weight = 1;
+      k.weight = normalizeWeight(k.weight);
+    });
     if (typeof parsed.rrIndex !== "number") parsed.rrIndex = 0;
     if (!parsed.rrIndexByPool || typeof parsed.rrIndexByPool !== "object") parsed.rrIndexByPool = {};
     if (typeof parsed.version !== "number") parsed.version = 1;
@@ -309,6 +314,15 @@ function requireAdmin(req, res, next) {
   return res.status(401).json({ error: "unauthorized" });
 }
 
+function normalizeWeight(raw) {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return 1;
+  const v = Math.trunc(n);
+  if (v < 1) return 1;
+  if (v > 1000) return 1000;
+  return v;
+}
+
 function pickKeyRoundRobin(state, { provider, model }) {
   const now = Date.now();
   const pool = state.keys.filter((k) => {
@@ -325,33 +339,51 @@ function pickKeyRoundRobin(state, { provider, model }) {
   const perPool = state.rrIndexByPool && typeof state.rrIndexByPool === "object" ? state.rrIndexByPool : {};
   const rr = typeof perPool[poolId] === "number" ? perPool[poolId] : rrIndex;
 
-  const start = ((rr % pool.length) + pool.length) % pool.length;
-  for (let i = 0; i < pool.length; i += 1) {
-    const idx = (start + i) % pool.length;
-    const k = pool[idx];
+  const weights = pool.map((k) => normalizeWeight(k.weight));
+  const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+  if (!totalWeight) return null;
+
+  function pickByOffset(offset) {
+    let acc = 0;
+    for (let i = 0; i < pool.length; i += 1) {
+      const w = weights[i];
+      if (!w) continue;
+      const startOffset = acc;
+      acc += w;
+      if (offset < acc) return { key: pool[i], idx: i, startOffset, weight: w };
+    }
+    return { key: pool[pool.length - 1], idx: pool.length - 1, startOffset: Math.max(0, totalWeight - weights[weights.length - 1]), weight: weights[weights.length - 1] };
+  }
+
+  const start = ((rr % totalWeight) + totalWeight) % totalWeight;
+  for (let i = 0; i < totalWeight; i += 1) {
+    const off = (start + i) % totalWeight;
+    const picked = pickByOffset(off);
+    const k = picked.key;
     const until = Number(k.cooldownUntil || 0);
     if (!until || until <= now) {
-      perPool[poolId] = (idx + 1) % pool.length;
+      perPool[poolId] = (off + 1) % totalWeight;
       state.rrIndexByPool = perPool;
       state.rrIndex = rrIndex + 1;
       return k;
     }
   }
 
-  let soonestIdx = 0;
+  let soonestKeyIdx = 0;
   let soonestUntil = Number(pool[0].cooldownUntil || 0);
   for (let i = 1; i < pool.length; i += 1) {
     const until = Number(pool[i].cooldownUntil || 0);
     if (!Number.isFinite(soonestUntil) || (Number.isFinite(until) && until < soonestUntil)) {
       soonestUntil = until;
-      soonestIdx = i;
+      soonestKeyIdx = i;
     }
   }
 
-  perPool[poolId] = (soonestIdx + 1) % pool.length;
+  const startOffset = weights.slice(0, soonestKeyIdx).reduce((sum, w) => sum + w, 0);
+  perPool[poolId] = (startOffset + weights[soonestKeyIdx]) % totalWeight;
   state.rrIndexByPool = perPool;
   state.rrIndex = rrIndex + 1;
-  return pool[soonestIdx];
+  return pool[soonestKeyIdx];
 }
 
 async function markFailure(keyId, { status }) {
@@ -701,13 +733,14 @@ app.get("/admin/timeseries", requireAdmin, async (req, res) => {
 });
 
 app.post("/admin/keys", requireAdmin, async (req, res) => {
-  const { name, provider, apiKey, baseUrl, models, enabled } = req.body || {};
+  const { name, provider, apiKey, baseUrl, models, enabled, weight } = req.body || {};
   const normalizedProvider = normalizeProvider(provider);
   if (!normalizedProvider) return res.status(400).json({ error: "provider_invalid" });
   const normalizedApiKey = normalizeApiKey(apiKey);
   if (!normalizedApiKey) return res.status(400).json({ error: "apiKey_required" });
   const normalizedBaseUrl = validateBaseUrl(baseUrl);
   if (!normalizedBaseUrl) return res.status(400).json({ error: "baseUrl_invalid" });
+  const normalizedWeight = normalizeWeight(weight);
 
   const state = await readState();
   const id = crypto.randomUUID();
@@ -719,6 +752,7 @@ app.post("/admin/keys", requireAdmin, async (req, res) => {
     apiKey: normalizedApiKey,
     baseUrl: normalizedBaseUrl,
     models: Array.isArray(models) ? models.filter((m) => typeof m === "string" && m.trim()).map((m) => m.trim()) : [],
+    weight: normalizedWeight,
     enabled: enabled !== false,
     failures: 0,
     cooldownUntil: 0,
@@ -732,7 +766,7 @@ app.post("/admin/keys", requireAdmin, async (req, res) => {
 
 app.put("/admin/keys/:id", requireAdmin, async (req, res) => {
   const id = req.params.id;
-  const { name, provider, apiKey, baseUrl, models, enabled } = req.body || {};
+  const { name, provider, apiKey, baseUrl, models, enabled, weight } = req.body || {};
   const state = await readState();
   const key = state.keys.find((k) => k.id === id);
   if (!key) return res.status(404).json({ error: "not_found" });
@@ -754,6 +788,7 @@ app.put("/admin/keys/:id", requireAdmin, async (req, res) => {
   }
   if (Array.isArray(models)) key.models = models.filter((m) => typeof m === "string" && m.trim()).map((m) => m.trim());
   if (typeof enabled === "boolean") key.enabled = enabled;
+  if (weight !== undefined) key.weight = normalizeWeight(weight);
   key.updatedAt = nowIso();
   await writeState(state);
   res.json({ ok: true });
