@@ -9,9 +9,10 @@
 ## Features
 
 - Local management UI: add/edit/enable/disable/delete keys
+- Paste-friendly API key normalization: strips quotes / `Bearer ` prefix / trims whitespace
 - Provider presets: OpenAI, Gemini (OpenAI-compatible), DeepSeek (OpenAI-compatible), Custom
 - OpenAI-compatible reverse proxy: injects upstream `Authorization: Bearer <apiKey>`
-- Load balancing & failover: round-robin across eligible keys; cooldown on `429`, `5xx`, `401/403`
+- Load balancing & failover: per (provider+model) round-robin; cooldown on `429`, `5xx`, `401/403`; if all keys are cooling down, tries the one that recovers the soonest
 - Monitoring dashboard: per-key totals / success / failure / cooldown / avg latency + selectable charts
 - Prometheus metrics: exposes `/metrics` with `llm_api_lb_*` series
 - UI language switch: Chinese / English

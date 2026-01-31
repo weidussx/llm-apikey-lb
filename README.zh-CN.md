@@ -9,9 +9,10 @@
 ## 功能
 
 - 本地管理界面：新增/编辑/启用/禁用/删除 Key
+- 更稳的 Key 录入：自动去引号/去掉 `Bearer` 前缀/trim 空白（避免粘贴格式导致鉴权失败）
 - 厂商预设：OpenAI、Gemini（OpenAI 兼容）、DeepSeek（OpenAI 兼容）、自定义
 - OpenAI 兼容反向代理：自动注入上游 `Authorization: Bearer <apiKey>`
-- 负载均衡与故障切换：可用 Key round-robin；遇到 `429`/`5xx`/`401/403` 冷却并重试
+- 负载均衡与故障切换：按 provider+model 分池轮询；遇到 `429`/`5xx`/`401/403` 冷却并重试；全冷却时选择“最早解除冷却”的 Key 继续尝试
 - 监控面板：按 Key 统计请求/成功/失败/冷却/平均耗时 + 勾选出图
 - Prometheus 指标：暴露 `/metrics`（`llm_api_lb_*`）
 - 界面语言切换：中英文

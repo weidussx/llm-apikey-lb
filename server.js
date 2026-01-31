@@ -76,6 +76,19 @@ function ensureTrailingSlash(url) {
   return url.endsWith("/") ? url : `${url}/`;
 }
 
+function normalizeApiKey(raw) {
+  if (typeof raw !== "string") return "";
+  let k = raw.trim();
+  if (!k) return "";
+  if ((k.startsWith('"') && k.endsWith('"')) || (k.startsWith("'") && k.endsWith("'"))) {
+    k = k.slice(1, -1).trim();
+  }
+  if (k.toLowerCase().startsWith("bearer ")) {
+    k = k.slice(7).trim();
+  }
+  return k;
+}
+
 function safeJoinUrl(baseUrl, pathnameAndQuery) {
   const normalizedBase = ensureTrailingSlash(baseUrl);
   const normalizedPath = pathnameAndQuery.startsWith("/")
@@ -93,11 +106,8 @@ function guessProviderFromModel(model) {
 }
 
 function rewritePathForProvider(provider, originalPath) {
-  if (provider === "gemini") {
-    if (originalPath === "/v1") return "/";
-    if (originalPath.startsWith("/v1/")) return originalPath.slice(3);
-    return originalPath;
-  }
+  if (originalPath === "/v1") return "/";
+  if (originalPath.startsWith("/v1/")) return originalPath.slice(3);
   return originalPath;
 }
 
@@ -110,11 +120,10 @@ function shouldCooldownOnStatus(status) {
 }
 
 function computeCooldownMs(status, failures) {
-  if (status === 429) return 30_000;
+  if (status === 429) return 45_000;
   if (status === 401 || status === 403) return 10 * 60_000;
-  const base = 10_000;
-  const cappedFailures = Math.min(Math.max(failures, 1), 6);
-  return base * Math.pow(2, cappedFailures - 1);
+  if (typeof status === "number" && status >= 500) return 10_000;
+  return 20_000;
 }
 
 function maskKey(apiKey) {
@@ -276,10 +285,11 @@ async function readState() {
     if (!parsed || typeof parsed !== "object") throw new Error("invalid_state");
     if (!Array.isArray(parsed.keys)) parsed.keys = [];
     if (typeof parsed.rrIndex !== "number") parsed.rrIndex = 0;
+    if (!parsed.rrIndexByPool || typeof parsed.rrIndexByPool !== "object") parsed.rrIndexByPool = {};
     if (typeof parsed.version !== "number") parsed.version = 1;
     return parsed;
   } catch (e) {
-    const fresh = { version: 1, rrIndex: 0, keys: [] };
+    const fresh = { version: 1, rrIndex: 0, rrIndexByPool: {}, keys: [] };
     await writeState(fresh);
     return fresh;
   }
@@ -301,19 +311,47 @@ function requireAdmin(req, res, next) {
 
 function pickKeyRoundRobin(state, { provider, model }) {
   const now = Date.now();
-  const eligible = state.keys.filter((k) => {
+  const pool = state.keys.filter((k) => {
     if (!k.enabled) return false;
-    if (k.cooldownUntil && now < k.cooldownUntil) return false;
     if (provider && k.provider !== provider) return false;
     if (model && Array.isArray(k.models) && k.models.length > 0 && !k.models.includes(model)) return false;
     return true;
   });
 
-  if (eligible.length === 0) return null;
-  const idx = ((state.rrIndex || 0) % eligible.length + eligible.length) % eligible.length;
-  const chosen = eligible[idx];
-  state.rrIndex = (state.rrIndex || 0) + 1;
-  return chosen;
+  if (pool.length === 0) return null;
+
+  const poolId = `${provider || "any"}::${typeof model === "string" && model.trim() ? model.trim() : "any"}`;
+  const rrIndex = typeof state.rrIndex === "number" ? state.rrIndex : 0;
+  const perPool = state.rrIndexByPool && typeof state.rrIndexByPool === "object" ? state.rrIndexByPool : {};
+  const rr = typeof perPool[poolId] === "number" ? perPool[poolId] : rrIndex;
+
+  const start = ((rr % pool.length) + pool.length) % pool.length;
+  for (let i = 0; i < pool.length; i += 1) {
+    const idx = (start + i) % pool.length;
+    const k = pool[idx];
+    const until = Number(k.cooldownUntil || 0);
+    if (!until || until <= now) {
+      perPool[poolId] = (idx + 1) % pool.length;
+      state.rrIndexByPool = perPool;
+      state.rrIndex = rrIndex + 1;
+      return k;
+    }
+  }
+
+  let soonestIdx = 0;
+  let soonestUntil = Number(pool[0].cooldownUntil || 0);
+  for (let i = 1; i < pool.length; i += 1) {
+    const until = Number(pool[i].cooldownUntil || 0);
+    if (!Number.isFinite(soonestUntil) || (Number.isFinite(until) && until < soonestUntil)) {
+      soonestUntil = until;
+      soonestIdx = i;
+    }
+  }
+
+  perPool[poolId] = (soonestIdx + 1) % pool.length;
+  state.rrIndexByPool = perPool;
+  state.rrIndex = rrIndex + 1;
+  return pool[soonestIdx];
 }
 
 async function markFailure(keyId, { status }) {
@@ -658,7 +696,8 @@ app.post("/admin/keys", requireAdmin, async (req, res) => {
   const { name, provider, apiKey, baseUrl, models, enabled } = req.body || {};
   const normalizedProvider = normalizeProvider(provider);
   if (!normalizedProvider) return res.status(400).json({ error: "provider_invalid" });
-  if (!apiKey || typeof apiKey !== "string") return res.status(400).json({ error: "apiKey_required" });
+  const normalizedApiKey = normalizeApiKey(apiKey);
+  if (!normalizedApiKey) return res.status(400).json({ error: "apiKey_required" });
   const normalizedBaseUrl = validateBaseUrl(baseUrl);
   if (!normalizedBaseUrl) return res.status(400).json({ error: "baseUrl_invalid" });
 
@@ -669,7 +708,7 @@ app.post("/admin/keys", requireAdmin, async (req, res) => {
     id,
     name: typeof name === "string" && name.trim() ? name.trim() : `${provider}-${id.slice(0, 6)}`,
     provider: normalizedProvider,
-    apiKey: apiKey.trim(),
+    apiKey: normalizedApiKey,
     baseUrl: normalizedBaseUrl,
     models: Array.isArray(models) ? models.filter((m) => typeof m === "string" && m.trim()).map((m) => m.trim()) : [],
     enabled: enabled !== false,
@@ -701,7 +740,10 @@ app.put("/admin/keys/:id", requireAdmin, async (req, res) => {
     if (!normalizedBaseUrl) return res.status(400).json({ error: "baseUrl_invalid" });
     key.baseUrl = normalizedBaseUrl;
   }
-  if (typeof apiKey === "string" && apiKey.trim()) key.apiKey = apiKey.trim();
+  if (typeof apiKey === "string") {
+    const normalizedApiKey = normalizeApiKey(apiKey);
+    if (normalizedApiKey) key.apiKey = normalizedApiKey;
+  }
   if (Array.isArray(models)) key.models = models.filter((m) => typeof m === "string" && m.trim()).map((m) => m.trim());
   if (typeof enabled === "boolean") key.enabled = enabled;
   key.updatedAt = nowIso();
@@ -768,7 +810,13 @@ app.all(["/v1/*", "/chat/*", "/embeddings", "/models"], async (req, res) => {
   const methodLabel = req.method || "GET";
   const modelLabel = typeof requestedModel === "string" && requestedModel.trim() ? requestedModel.trim() : "-";
 
-  const attempts = Math.min(state.keys.length, 8);
+  const poolKeys = state.keys.filter((k) => {
+    if (!k.enabled) return false;
+    if (provider && k.provider !== provider) return false;
+    if (requestedModel && Array.isArray(k.models) && k.models.length > 0 && !k.models.includes(requestedModel)) return false;
+    return true;
+  });
+  const attempts = Math.max(1, poolKeys.length);
   let lastStatus = 502;
 
   for (let i = 0; i < attempts; i += 1) {
