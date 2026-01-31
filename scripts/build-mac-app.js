@@ -277,6 +277,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     }
 
     let menu = NSMenu()
+    menu.autoenablesItems = false
 
     menuOpenMain = NSMenuItem(title: "打开主界面", action: #selector(onMenuOpenMain), keyEquivalent: "")
     menuOpenMain.target = self
@@ -519,6 +520,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     expectedInstanceId = instanceId
     openBrowserButton.isEnabled = true
     copyUrlButton.isEnabled = true
+    startButton.isEnabled = false
     stopButton.isEnabled = true
     menuOpenBrowser.isEnabled = true
     menuStop.isEnabled = true
@@ -534,6 +536,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     expectedInstanceId = nil
     openBrowserButton.isEnabled = false
     copyUrlButton.isEnabled = false
+    startButton.isEnabled = true
     stopButton.isEnabled = false
     if menuOpenBrowser != nil { menuOpenBrowser.isEnabled = false }
     if menuStop != nil { menuStop.isEnabled = false }
