@@ -82,6 +82,9 @@ const I18N = {
     "modal.field.apiKey": "API Key",
     "modal.field.adminToken": "ADMIN_TOKEN",
     "modal.ph.apiKeyKeep": "留空=不改",
+    "modal.token.desc": "ADMIN_TOKEN 用于保护 /admin/* 管理接口。\n当服务端设置了环境变量 ADMIN_TOKEN 后，所有管理接口必须携带请求头：x-admin-token: <ADMIN_TOKEN> 才能访问。",
+    "modal.token.note": "这里设置的令牌只保存在本机（浏览器/应用的 localStorage），不会上传，也不会写入状态文件。\n留空并保存 = 清除本机保存的令牌。",
+    "modal.token.example": "示例（命令行调用管理接口）：\ncurl -H \"x-admin-token: <ADMIN_TOKEN>\" http://localhost:8787/admin/keys",
 
     "section.launcher": "启动",
     "launcher.desc": "设置端口并启动服务（默认 8787）。",
@@ -203,6 +206,9 @@ const I18N = {
     "modal.field.apiKey": "API Key",
     "modal.field.adminToken": "ADMIN_TOKEN",
     "modal.ph.apiKeyKeep": "Empty = keep unchanged",
+    "modal.token.desc": "ADMIN_TOKEN protects /admin/* management endpoints.\nIf the server sets env ADMIN_TOKEN, admin APIs require header: x-admin-token: <ADMIN_TOKEN>.",
+    "modal.token.note": "This token is stored locally (browser/app localStorage) only. It is not uploaded and not written to the state file.\nSave empty = clear the local token.",
+    "modal.token.example": "Example (call admin API from CLI):\ncurl -H \"x-admin-token: <ADMIN_TOKEN>\" http://localhost:8787/admin/keys",
 
     "section.launcher": "Start",
     "launcher.desc": "Choose a port and start the service (default 8787).",
@@ -498,7 +504,12 @@ function openAdminTokenModal({ onDone } = {}) {
 
   openModal({
     titleKey: "modal.token.title",
-    bodyNodes: [el("label", {}, [el("span", { "data-i18n": "modal.field.adminToken" }), inputToken])],
+    bodyNodes: [
+      el("div", { class: "modalNote", "data-i18n": "modal.token.desc" }),
+      el("label", {}, [el("span", { "data-i18n": "modal.field.adminToken" }), inputToken]),
+      el("div", { class: "modalNote", "data-i18n": "modal.token.note" }),
+      el("pre", { class: "codeBox", "data-i18n": "modal.token.example" })
+    ],
     onOk: async () => {
       const m = getModalEls();
       if (m.hint) {

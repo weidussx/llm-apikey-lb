@@ -364,13 +364,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     }
   }
 
-  private func writeLaunchAgentPlist() throws {
+  private func writeLaunchAgentPlist(executablePath: String) throws {
     let dir = (NSHomeDirectory() as NSString).appendingPathComponent("Library/LaunchAgents")
     try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
-    let bundleId = Bundle.main.bundleIdentifier ?? "com.weidussx.llm-api-lb"
     let plist: [String: Any] = [
       "Label": autoStartLabel(),
-      "ProgramArguments": ["/usr/bin/open", "-gj", "-b", bundleId, "--args", "--autostart"],
+      "ProgramArguments": [executablePath, "--autostart"],
       "RunAtLoad": true,
       "LimitLoadToSessionType": "Aqua"
     ]
@@ -385,10 +384,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
   private func setAutoStartEnabled(_ enabled: Bool) {
     let uid = String(getuid())
     let plistPath = launchAgentPlistPath()
+    guard let exeUrl = Bundle.main.executableURL else { return }
+    let exePath = exeUrl.path
 
     if enabled {
       do {
-        try writeLaunchAgentPlist()
+        try writeLaunchAgentPlist(executablePath: exePath)
       } catch {
         let alert = NSAlert()
         alert.messageText = "设置失败"
