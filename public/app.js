@@ -67,6 +67,7 @@ const I18N = {
     "btn.enable": "启用",
     "btn.disable": "禁用",
     "btn.delete": "删除",
+    "btn.deleteConfirm": "确认删除",
 
     "section.launcher": "启动",
     "launcher.desc": "设置端口并启动服务（默认 8787）。",
@@ -152,6 +153,9 @@ const I18N = {
 
     "msg.addOk": "添加成功",
     "msg.addFail": "添加失败：{message}",
+    "msg.deleteOk": "删除成功",
+    "msg.deleteConfirm": "再次点击“确认删除”以删除 {name}",
+    "msg.deleteFail": "删除失败：{message}",
     "msg.loadFail": "加载失败：{message}"
   },
   en: {
@@ -168,6 +172,7 @@ const I18N = {
     "btn.enable": "Enable",
     "btn.disable": "Disable",
     "btn.delete": "Delete",
+    "btn.deleteConfirm": "Confirm delete",
 
     "section.launcher": "Start",
     "launcher.desc": "Choose a port and start the service (default 8787).",
@@ -253,6 +258,9 @@ const I18N = {
 
     "msg.addOk": "Added",
     "msg.addFail": "Add failed: {message}",
+    "msg.deleteOk": "Deleted",
+    "msg.deleteConfirm": "Click “Confirm delete” again to delete {name}",
+    "msg.deleteFail": "Delete failed: {message}",
     "msg.loadFail": "Load failed: {message}"
   }
 };
@@ -699,9 +707,14 @@ function applyPresetToForm(presets, provider) {
 
 function renderKeys(keys, presets) {
   const root = document.getElementById("keys");
+  const hint = document.getElementById("keysHint");
   if (!keys.length) {
     root.innerHTML = "";
     root.appendChild(el("div", { class: "muted" }, [t("keys.empty")]));
+    if (hint) {
+      hint.textContent = "";
+      hint.classList.remove("error");
+    }
     return;
   }
 
@@ -752,9 +765,43 @@ function renderKeys(keys, presets) {
       {
         class: "danger",
         onclick: async () => {
-          if (!confirm(t("prompt.delete", { name: k.name }))) return;
-          await api(`/admin/keys/${k.id}`, { method: "DELETE", headers: headers() });
-          await refreshAll();
+          const btn = btnDelete;
+          if (btn.dataset.confirming !== "1") {
+            btn.dataset.confirming = "1";
+            btn.textContent = t("btn.deleteConfirm");
+            if (hint) {
+              hint.textContent = t("msg.deleteConfirm", { name: k.name });
+              hint.classList.remove("error");
+            }
+            setTimeout(() => {
+              btn.dataset.confirming = "0";
+              btn.textContent = t("btn.delete");
+              if (hint && hint.textContent === t("msg.deleteConfirm", { name: k.name })) {
+                hint.textContent = "";
+                hint.classList.remove("error");
+              }
+            }, 2500);
+            return;
+          }
+
+          btn.disabled = true;
+          try {
+            await api(`/admin/keys/${k.id}`, { method: "DELETE", headers: headers() });
+            if (hint) {
+              hint.textContent = t("msg.deleteOk");
+              hint.classList.remove("error");
+            }
+            await refreshAll();
+          } catch (e) {
+            if (hint) {
+              hint.textContent = t("msg.deleteFail", { message: e.message });
+              hint.classList.add("error");
+            }
+          } finally {
+            btn.disabled = false;
+            btn.dataset.confirming = "0";
+            btn.textContent = t("btn.delete");
+          }
         }
       },
       [t("btn.delete")]
