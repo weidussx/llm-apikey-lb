@@ -143,6 +143,35 @@ button:disabled {
   color: #93c5fd;
 }
 
+.helpWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.tooltipPanel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  min-width: 320px;
+  max-width: 420px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #1f2937;
+  background: #0b1020;
+  color: #e5e7eb;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-line;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  display: none;
+}
+
+.helpWrap:hover .tooltipPanel,
+.helpWrap:focus-within .tooltipPanel {
+  display: block;
+}
+
 .error {
   color: #fecaca;
 }

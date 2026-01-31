@@ -4,7 +4,7 @@
 
 `llm-api-lb` 是一个本地运行的 HTTP 网关，用来管理多个上游 API Key，并对外提供一个统一的 OpenAI 兼容 `/v1` 入口。它会对可用 Key 做轮询，并在遇到限流/错误时自动冷却与切换。
 
-![界面截图](assets/ui.png)
+![界面截图](screenshot/ui.png)
 
 ## 功能
 

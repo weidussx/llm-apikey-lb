@@ -4,7 +4,7 @@
 
 `llm-api-lb` is a local HTTP gateway that manages a pool of API keys and exposes a single OpenAI-compatible `/v1` endpoint. It round-robins keys and automatically cools down / fails over on rate limits and upstream errors.
 
-![UI Screenshot](assets/ui.png)
+![UI Screenshot](screenshot/ui.png)
 
 ## Features
 
@@ -143,7 +143,14 @@ To run it anyway:
 
 - Finder: right-click the binary → Open → Open
 - Or: System Settings → Privacy & Security → “Open Anyway”
-- Or (CLI): remove the quarantine attribute:
+
+Screenshots (macOS):
+
+![macOS first open warning](screenshot/Snipaste_2026-01-31_16-55-14.png)
+![System Settings → Privacy & Security → Open Anyway](screenshot/Snipaste_2026-01-31_16-55-48.png)
+![Right-click → Open (confirm once)](screenshot/Snipaste_2026-01-31_16-56-03.png)
+
+Or (CLI): remove the quarantine attribute:
 
 ```bash
 xattr -dr com.apple.quarantine ./llm-api-lb-macos-arm64

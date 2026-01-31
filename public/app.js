@@ -61,6 +61,7 @@ const I18N = {
     "btn.lang.zh": "中文",
     "btn.lang.en": "EN",
     "btn.setToken": "设置管理令牌",
+    "btn.help": "帮助",
     "btn.refresh": "刷新",
     "btn.add": "添加",
     "btn.edit": "编辑",
@@ -68,6 +69,8 @@ const I18N = {
     "btn.disable": "禁用",
     "btn.delete": "删除",
     "btn.deleteConfirm": "确认删除",
+
+    "help.endpoints": "- 管理界面：http://localhost:8787/\n- 健康检查：http://localhost:8787/health\n- OpenAI 兼容入口：http://localhost:8787/v1\n- Prometheus 指标：http://localhost:8787/metrics",
 
     "section.launcher": "启动",
     "launcher.desc": "设置端口并启动服务（默认 8787）。",
@@ -166,6 +169,7 @@ const I18N = {
     "btn.lang.zh": "中文",
     "btn.lang.en": "EN",
     "btn.setToken": "Set admin token",
+    "btn.help": "Help",
     "btn.refresh": "Refresh",
     "btn.add": "Add",
     "btn.edit": "Edit",
@@ -173,6 +177,8 @@ const I18N = {
     "btn.disable": "Disable",
     "btn.delete": "Delete",
     "btn.deleteConfirm": "Confirm delete",
+
+    "help.endpoints": "- UI: http://localhost:8787/\n- Health: http://localhost:8787/health\n- OpenAI-compatible API: http://localhost:8787/v1\n- Prometheus metrics: http://localhost:8787/metrics",
 
     "section.launcher": "Start",
     "launcher.desc": "Choose a port and start the service (default 8787).",
